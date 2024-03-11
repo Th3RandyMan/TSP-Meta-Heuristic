@@ -118,8 +118,7 @@ class LKAlgorithm():
             for neighbor in nearby:
                 removed_edges = set([self._pair(node, neighbor)]) # Set of broken edges
                 gain = self.edges[node, neighbor]
-                close_nodes = self.closest(neighbor, self.tour, gain, removed_edges, set())
-                #close_nodes = self.closest(6, np.array([ 0,  1,  2,  3,  4,  5,  7,  8,  9, 10, 11, 12,  6]), 2408, {(0,6)}, set()) #investigate
+                close_nodes = self.closest(neighbor, gain, removed_edges, set())
 
                 attempts = 5  # Limit the number of attempts to find a better solution
                 for close_node, (potential_gain, reduced_gain) in close_nodes:
@@ -127,8 +126,8 @@ class LKAlgorithm():
                     if close_node in nearby:
                         continue
 
-                    joined_edges = set([self._pair(neighbor, close_node)])
-                    if self.remove_edge(self.tour, node, close_node, reduced_gain, removed_edges, joined_edges):
+                    added_edges = set([self._pair(neighbor, close_node)])
+                    if self.remove_edge(node, close_node, reduced_gain, removed_edges, added_edges):
                         return True # Improvement found
 
                     attempts -= 1
@@ -162,7 +161,7 @@ class LKAlgorithm():
         return (n1, n2) if n1 < n2 else (n2, n1)
 
 
-    def closest(self, target, tour, gain, removed_edges, added_edges):
+    def closest(self, target, gain, removed_edges, added_edges):
         """
         Find the closest node to the given target node and its potential gain. Sorted by
         potential gain in descending order.
@@ -194,7 +193,7 @@ class LKAlgorithm():
         return sorted(neighbors.items(), key=lambda x: x[1][0], reverse=True)
 
 
-    def remove_edge(self, tour, node, close_node, gain, removed_edges, added_edges):
+    def remove_edge(self, node, close_node, gain, removed_edges, added_edges):
         """
         Remove an edge from the tour
         :return: True if the edge is removed, False otherwise
@@ -232,7 +231,7 @@ class LKAlgorithm():
                     self.tour_length -= new_dist
                     return True
                 else:
-                    return self.add_edge(tour, node, neighbor, current_gain, removed, added_edges)
+                    return self.add_edge(node, neighbor, current_gain, removed, added_edges)
 
         return False
 
@@ -276,11 +275,11 @@ class LKAlgorithm():
 
         return len(new_tour) == len(self.tour), np.array(new_tour)
 
-    def add_edge(self, tour, node, neighbor, gain, removed_edges, added_edges):
+    def add_edge(self, node, neighbor, gain, removed_edges, added_edges):
         """
         Add an edge to the tour
         """
-        close = self.closest(neighbor, tour, gain, removed_edges, added_edges)
+        close = self.closest(neighbor, gain, removed_edges, added_edges)
 
         if len(removed_edges) == 2:
             n_neighbors = 5 # Check 5 closest neighbors
@@ -292,7 +291,7 @@ class LKAlgorithm():
             added = deepcopy(added_edges)
             added.add(edge)
 
-            if self.remove_edge(tour, node, close_node, reduced_gain, removed_edges, added):
+            if self.remove_edge(node, close_node, reduced_gain, removed_edges, added):
                 return True
 
         return False
