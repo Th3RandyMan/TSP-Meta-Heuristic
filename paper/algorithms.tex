@@ -1,0 +1,152 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[linesnumbered,ruled]{algorithm2e}
+
+\begin{document}
+\begin{algorithm}
+    \SetKwInOut{Output}{Output1}
+    %\underline{function Euclid} $(a,b)$\;
+    \Output{True if improved, False if not}
+    \ForEach{node along the path}
+    {
+      \ForEach{prenode, before and after the current node}
+      {
+        gain = distance between current node and prenode
+        
+        removed\_edges = (current node, prenode)
+
+        close\_nodes, reduced\_gains = closest(node, gain, removed\_edges)
+
+        attempt = 5
+
+        \ForEach{close\_node in close\_nodes}
+        {
+          \If{close\_node is not a prenode}{
+            added\_edges = (prenode, close\_node)
+
+            \If{sucessfully remove\_edge(node, close\_node, reduced\_gain, removed\_edges, added\_edges)}
+            {
+              return True
+            }
+
+            attempt -= 1
+
+            \If{attempt == 0}
+            {
+              break
+            }
+          }
+        }
+      }
+    }
+    \caption{Improve method for Lin-Kernighan}
+\end{algorithm}
+
+
+\begin{algorithm}
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  %\underline{function Euclid} $(a,b)$\;
+  \Input{target node, gain, removed edges, added edges}
+  \Output{Sorted Dictionary of nodes with potential and reduced gains}
+  
+  \ForEach{neighbor near target node}
+  {
+    reduced\_gain = gain - distance between target node and neighbor
+
+    \If{reduced\_gain $>$ 0, (target\_node, neighbor) is not in removed\_edges and edges of the path}
+    {
+      \ForEach{near\_node}
+      {
+        \If{(near\_node, neighbor) is not in removed\_edges or added\_edges}
+        {
+          potential\_gain = (distance between near\_node and neighbor) - (distance between neighbor and target node)
+        
+          \eIf{neighbor in neighbors and potential\_gain $>$ gain to closest neighbor}
+          {
+            save potential\_gain in the neighbor dictionary
+          }
+          {
+            save potential\_gain and reduced\_gain in the neighbor dictionary
+          }
+          }
+      }
+    }
+  }
+  return sorted neighbor dictionary
+
+  \caption{Closest method for Lin-Kernighan}
+\end{algorithm}
+
+
+\begin{algorithm}
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  %\underline{function Euclid} $(a,b)$\;
+  \Input{node, close node, gain, removed edges, added edges}
+  \Output{True if successfully removed, False if not}
+
+  Check how many edges have been removed from the path, and only allow up to 5 edges to be removed.
+
+  \ForEach{near\_node}
+  {
+    current\_gain = gain + distance between close\_node and near\_node
+    \If{edge is not in added\_edges and removed\_edges}
+    {
+      added = added\_edges + (node, near\_node)
+
+      removed = removed\_edges
+
+      new\_gain = current\_gain - distance between node and near\_node
+
+      valid = create new tour with added and removed
+      \If{valid or added length is less than 3}
+      {
+        \If{new tour is a known solution}
+        {
+          return False
+        }
+
+        \eIf{valid}
+        {
+          save new tour as current path for TSP
+
+          return True
+        }
+        {
+          return add\_edge(node, near\_node, current\_gain, removed, added\_edges)
+        }
+      }
+    }
+
+  }
+  return False
+
+  \caption{Remove edge method for Lin-Kernighan}
+\end{algorithm}
+
+
+\begin{algorithm}
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  %\underline{function Euclid} $(a,b)$\;
+  \Input{node, near node, gain, removed edges, added edges}
+  \Output{True if successfully added, False if not}
+  
+  close = closest(near\_node, gain, removed\_edges, added\_edges)
+
+  \ForEach{close\_node with reduced\_gain}
+  {
+    added = added\_edges + (near\_node, close\_node)
+
+    \If{remove\_edge(node, close\_node, reduced\_gain, removed\_edges, added)}
+    {
+      return True
+    }
+  }
+  return False
+
+  \caption{Add edge method for Lin-Kernighan}
+\end{algorithm}
+
+\end{document} 

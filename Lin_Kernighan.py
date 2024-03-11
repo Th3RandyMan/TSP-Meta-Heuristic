@@ -115,10 +115,10 @@ class LKAlgorithm():
         for node in self.tour: # For each node in the tour
             # Look at locations before and after the target node
             nearby = self._nearby(node)
-            for neighbor in nearby:
-                removed_edges = set([self._pair(node, neighbor)]) # Set of broken edges
-                gain = self.edges[node, neighbor]
-                close_nodes = self.closest(neighbor, gain, removed_edges, set())
+            for near_node in nearby:
+                removed_edges = set([self._pair(node, near_node)]) # Set of broken edges
+                gain = self.edges[node, near_node]
+                close_nodes = self.closest(near_node, gain, removed_edges)
 
                 attempts = 5  # Limit the number of attempts to find a better solution
                 for close_node, (potential_gain, reduced_gain) in close_nodes:
@@ -126,7 +126,7 @@ class LKAlgorithm():
                     if close_node in nearby:
                         continue
 
-                    added_edges = set([self._pair(neighbor, close_node)])
+                    added_edges = set([self._pair(near_node, close_node)])
                     if self.remove_edge(node, close_node, reduced_gain, removed_edges, added_edges):
                         return True # Improvement found
 
@@ -161,12 +161,12 @@ class LKAlgorithm():
         return (n1, n2) if n1 < n2 else (n2, n1)
 
 
-    def closest(self, target, gain, removed_edges, added_edges):
+    def closest(self, target, gain, removed_edges, added_edges=set()):
         """
         Find the closest node to the given target node and its potential gain. Sorted by
         potential gain in descending order.
         """
-        neighbors = {} # Look at 5 and 7
+        neighbors = {}
 
         # For each neighbor of the target node
         for neighbor in self.neighbors[target]:
@@ -178,17 +178,17 @@ class LKAlgorithm():
                 continue
 
             # Look at locations before and after the target node
-            for node in self._nearby(neighbor):
-                edge_path = self._pair(neighbor, node)
+            for near_node in self._nearby(neighbor):
+                edge_path = self._pair(neighbor, near_node)
                 if edge_path not in removed_edges and edge_path not in added_edges:
                     # Calculate difference in distance
-                    diff = self.edges[neighbor, node] - self.edges[target, neighbor]
+                    potential_gain = self.edges[neighbor, near_node] - self.edges[target, neighbor]
 
                     # If the neighbor is already in the list of neighbors, update the gain if the difference is greater
-                    if neighbor in neighbors and diff > neighbors[neighbor][0]:
-                        neighbors[neighbor][0] = diff
+                    if neighbor in neighbors and potential_gain > neighbors[neighbor][0]:
+                        neighbors[neighbor][0] = potential_gain
                     else:   # Otherwise, add the neighbor to the list of neighbors
-                        neighbors[neighbor] = [diff, reduced_gain]
+                        neighbors[neighbor] = [potential_gain, reduced_gain]
         
         return sorted(neighbors.items(), key=lambda x: x[1][0], reverse=True)
 
@@ -207,18 +207,18 @@ class LKAlgorithm():
             else:
                 nearby = [n2]
 
-        for neighbor in nearby:
-            edge = self._pair(close_node, neighbor)
-            current_gain = gain + self.edges[close_node, neighbor]
+        for near_node in nearby:
+            edge = self._pair(close_node, near_node)
+            current_gain = gain + self.edges[close_node, near_node]
 
             if edge not in added_edges and edge not in removed_edges:
                 added = deepcopy(added_edges)
                 removed = deepcopy(removed_edges)
                 
                 removed.add(edge)
-                added.add(self._pair(node, neighbor))
+                added.add(self._pair(node, near_node))
 
-                new_dist = current_gain - self.edges[node, neighbor]
+                new_gain = current_gain - self.edges[node, near_node]
                 valid_tour, new_tour = self.create_tour(removed, added)
                 if not valid_tour and len(added) > 2:   # Check if valid tour
                     continue
@@ -226,12 +226,12 @@ class LKAlgorithm():
                 if str(new_tour) in self.solutions:
                     return False
                 
-                if valid_tour and new_dist > 0:
+                if valid_tour and new_gain > 0:
                     self.tour = new_tour
-                    self.tour_length -= new_dist
+                    self.tour_length -= new_gain
                     return True
                 else:
-                    return self.add_edge(node, neighbor, current_gain, removed, added_edges)
+                    return self.add_edge(node, near_node, current_gain, removed, added_edges)
 
         return False
 
@@ -275,11 +275,11 @@ class LKAlgorithm():
 
         return len(new_tour) == len(self.tour), np.array(new_tour)
 
-    def add_edge(self, node, neighbor, gain, removed_edges, added_edges):
+    def add_edge(self, node, near_node, gain, removed_edges, added_edges):
         """
         Add an edge to the tour
         """
-        close = self.closest(neighbor, gain, removed_edges, added_edges)
+        close = self.closest(near_node, gain, removed_edges, added_edges)
 
         if len(removed_edges) == 2:
             n_neighbors = 5 # Check 5 closest neighbors
@@ -287,7 +287,7 @@ class LKAlgorithm():
             n_neighbors = 1 # Only check closest neighbor
 
         for close_node, (potential_gain, reduced_gain) in close[:n_neighbors]:
-            edge = self._pair(neighbor, close_node)
+            edge = self._pair(near_node, close_node)
             added = deepcopy(added_edges)
             added.add(edge)
 
@@ -300,14 +300,6 @@ class LKAlgorithm():
 
 # Test the algorithm
 if __name__ == "__main__":
-    # Create a distance matrix
-    #edges = np.array([  [0, 2, 9, 10],
-                        # [1, 0, 6, 4],
-                        # [15, 7, 0, 8],
-                        # [6, 3, 12, 0]   ])
-    
-
-    # Create an instance of the LKAlgorithm
     lk = LKAlgorithm()
     tour, dist = lk.optimize()
     print(f"Best path has length {dist}")
